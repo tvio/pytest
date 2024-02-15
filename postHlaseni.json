@@ -1,0 +1,23 @@
+{
+  "podaniID": "60ada444-8032-4398-8776-f126d86b2f3a",
+  "obdobi": "202402",
+  "kodPracoviste": "00150017164",
+  "sw": {
+    "nazev": "PyTest",
+    "verze": "9.9.6",
+    "vyrobce": "PytTest"
+  },
+  "reglp": [
+    {
+      "polozkaID": "708d8717-ad64-417d-b294-ca80f3796639",
+      "typHlaseni": 2,
+      "kodPracoviste": "00000145001",
+      "typPohybu": 1,
+      "mnozstvi": 10,
+      "nazev": "ACYLPYRIN 500 MG ŠUMIVÉ TABLETY",
+      "sarze": "A645B4",
+      "kodSUKL": "0185968",
+      "cena": 51.6
+    }
+  ]
+}
