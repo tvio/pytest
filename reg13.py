@@ -1,3 +1,5 @@
+#nemam dodelany deleta s getem ID
+#nemam dodelany test bez kodu pracoviste
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -23,7 +25,8 @@ def pfx_to_pem(pfx_path, pfx_password):
                 pem_file.write(ca.public_bytes(Encoding.PEM))
         yield t_pem.name
 
-
+#pracoviste je natvrdo spojene s certem
+pracoviste = '00150017164'
 url = 'https://testapi.sukl.cz/reg13/v3'   
 
 
@@ -47,9 +50,15 @@ def printRes(operace,res,**kwargs):
    print('res>>'+res.text)
    print('statusCode>>'+str(res.status_code))
    
+def delete(rok,mesic):
+ with pfx_to_pem('MAHSUKL150017166G.pfx', 'Test1234') as cert:
+   res = requests.get(url+'/hlaseni/'+pracoviste+'/rok/'+rok+'/mesic/'+mesic)
+   print(res.)
+   res =  requests.delete(url+'/hlaseni'+str(podaniID), cert=cert )
+   printRes('deleteHlaseni',res)
 
-
-def mainUC(typ,mesic):
+#mainUC
+def sKodemPrac(typ,mesic):
   
   with pfx_to_pem('MAHSUKL150017166G.pfx', 'Test1234') as cert:
    #status
@@ -68,8 +77,28 @@ def mainUC(typ,mesic):
      postHlaseniJSON['reglp'][0]["typHlaseni"] = (2) 
    res = requests.post(url+'/hlaseni',cert=cert,json=postHlaseniJSON)
    printRes('postHlaseni',res,req=postHlaseniJSON)
+#test bez kodu pracoviste   
+def bezKoduPrac(typ,mesic):
+  
+  with pfx_to_pem('MAHSUKL150017166G.pfx', 'Test1234') as cert:
+   #status
+   res =  requests.get(url+'/Status', cert=cert )
+   printRes('status',res)
+   #post  
+   postHlaseniJSON = loadJSON('postHlaseni.json')
+   postHlaseniJSON["podaniID"]  = str(uuid.uuid4())
+   postHlaseniJSON['reglp'][0]["polozkaID"] = str(uuid.uuid4())
+   postHlaseniJSON["obdobi"] = mesic
+   if typ=='dis':
+     postHlaseniJSON['reglp'][0]["kodPracoviste"] = ''
+     postHlaseniJSON['reglp'][0]["typHlaseni"] = (1)
+   elif typ=='lek':
+     postHlaseniJSON['reglp'][0]["kodPracoviste"] = ''
+     postHlaseniJSON['reglp'][0]["typHlaseni"] = (2) 
+   res = requests.post(url+'/hlaseni',cert=cert,json=postHlaseniJSON)
+   printRes('postHlaseni',res,req=postHlaseniJSON)
    
 
-
 #mainUC(typ='dis',mesic='202403')
-mainUC(typ='lek',mesic='202404')
+#mainUC(typ='lek',mesic='202404')
+bezKodu
