@@ -1,5 +1,8 @@
-#nemam dodelany deleta s getem ID
-#nemam dodelany test bez kodu pracoviste
+
+#delat na mimorande oprave 
+#udelat menu na vytvoreni procesu
+#delat na PUT cokoliv
+#dalat na UC prohazovani dat POST > Prohlaseni > etc.
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -9,7 +12,6 @@ import uuid
 import json
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
-
 
 @contextmanager
 def pfx_to_pem(pfx_path, pfx_password):
@@ -53,11 +55,19 @@ def loadJSON(soubor):
 
 #nacte privni kod pracoviste podle typu
 def nactiKodPracoviste(typ,**kwargs):
-     if
-     res = doReq('get','/pracoviste/'+str(typ))
-     resjson = res.json()
-     firstKod = resjson[0]['kodPracoviste']
-     return firstKod
+     if 'kodPracoviste' in kwargs:
+       kodPracoviste= str(kwargs.get('kodPracoviste'))
+       res = doReq('get','/pracoviste/'+str(typ)+'?kodPracoviste='+kodPracoviste)
+       printRes('nactiKodPracovsteJedenKod>>'+kodPracoviste,res)
+     elif 'ico' in kwargs:
+       ico= str(kwargs.get('ico'))
+       res = doReq('get','/pracoviste/'+str(typ)+'?ico='+ico)
+       printRes('nactiKodPracovsteJednoICO>>'+ico,res)
+     else:
+      res = doReq('get','/pracoviste/'+str(typ))
+      resjson = res.json()
+      firstKod = resjson[0]['kodPracoviste']
+      return firstKod
     
 def printRes(operace,res,**kwargs):
    print('operace'+operace)
@@ -74,14 +84,8 @@ def delete(rok,mesic):
    res =  doReq('delete','/hlaseni/'+resjson )
    printRes('deleteHlaseni',res)
 
-#mainUC
-def sKodemPrac(obdobi):
-  
-  with pfx_to_pem('MAHSUKL150017166G.pfx', 'Test1234') as cert:
-   #status
-   res =  requests.get(url+'/Status', cert=cert )
-   printRes('status',res)
-   #post  
+#hlavni post
+def postHlaseni(typ,obdobi):
    postHlaseniJSON = loadJSON('postHlaseni.json')
    postHlaseniJSON["podaniID"]  = str(uuid.uuid4())
    postHlaseniJSON['reglp'][0]["polozkaID"] = str(uuid.uuid4())
@@ -113,10 +117,12 @@ def bezKoduPrac(mesic):
    
 auth()
 #vezme prvni pracoviste dis z ciselniku praocvist
-#mainUC(typ='dis',mesic='202403')
+#postHlaseni(typ='dis',mesic='202403')
 #vezme prvni pracoviste lek z ciselniku pracovist
-#mainUC(typ='lek',mesic='202404')
+#postHlaseni(typ='lek',mesic='202404')
 #smaze hlaeni za konrketni mesic
 #delete('2024','03');
 #bezKoduPrac('202404')
+#nactiKodPracoviste(2,ico='27460894')
+
 
