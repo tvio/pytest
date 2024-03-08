@@ -8,6 +8,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import uuid
 import json
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
@@ -27,9 +29,20 @@ def pfx_to_pem(pfx_path, pfx_password):
                 pem_file.write(ca.public_bytes(Encoding.PEM))
         yield t_pem.name
 
+# config
 #pracoviste je natvrdo spojene s certem
 pracoviste = '00150017164'
 url = 'https://testapi.sukl.cz/reg13/v3'   
+timeout = (5,5)
+podaniID = str(uuid.uuid4())
+
+
+#prechod na session, jinak pada na timeout
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 
 
 def auth():
@@ -37,15 +50,16 @@ def auth():
   global cert
   cert = c 
 
-def doReq(htmlOperace,operace):
+
+def doReq(htmlOperace,operace,data={}):
   if htmlOperace=='get':
-   res = requests.get(url+operace,cert=cert,timeout=5)
+   res = session.get(url+operace,cert=cert,timeout=timeout)
   elif htmlOperace=='post':
-   res = requests.post(url+operace,cert=cert,timeout=5)
+   res = session.post(url+operace,cert=cert,timeout=timeout,json=data)
   elif htmlOperace=='delete':
-   res = requests.delete(url+operace,cert=cert,timeout=5)
+   res = session.delete(url+operace,cert=cert,timeout=timeout,)
   elif htmlOperace=='put':
-   res = requests.put(url+operace,cert=cert,timeout=5)
+   res = session.put(url+operace,cert=cert,timeout=timeout,json=data)
   
   return res
 def loadJSON(soubor):
@@ -80,26 +94,29 @@ def printRes(operace,res,**kwargs):
 def delete(rok,mesic):
    res = doReq('get','/hlaseni/'+pracoviste+'/rok/'+rok+'/mesic/'+mesic)
    printRes('getID podle data a kodu pracoviste',res)
-   resjson = res.json()[0]
-   res =  doReq('delete','/hlaseni/'+resjson )
-   printRes('deleteHlaseni',res)
+   if res.text =='[]':
+     print(' log - Hlaseni neexistuje , neni co mazat')
+   else:
+    resjson = res.json()[0]
+    res =  doReq('delete','/hlaseni/'+resjson )
+    printRes('deleteHlaseni',res)
 
 #hlavni post
 def postHlaseni(typ,obdobi):
    postHlaseniJSON = loadJSON('postHlaseni.json')
-   postHlaseniJSON["podaniID"]  = str(uuid.uuid4())
+   postHlaseniJSON["podaniID"]  = podaniID
    postHlaseniJSON['reglp'][0]["polozkaID"] = str(uuid.uuid4())
    postHlaseniJSON["obdobi"] = obdobi
    if typ=='dis':
-     postHlaseniJSON['reglp'][0]["kodPracoviste"] = nactiKodPracoviste(2)
+     postHlaseniJSON['reglp'][0]["kodPracoviste"] = nactiKodPracoviste(1)
      postHlaseniJSON['reglp'][0]["typHlaseni"] = (1)
    elif typ=='lek':
-     postHlaseniJSON['reglp'][0]["kodPracoviste"] = nactiKodPracoviste(1)
+     postHlaseniJSON['reglp'][0]["kodPracoviste"] = nactiKodPracoviste(2)
      postHlaseniJSON['reglp'][0]["typHlaseni"] = (2) 
-   res = requests.post(url+'/hlaseni',cert=cert,json=postHlaseniJSON)
+   res = doReq('post','/hlaseni',data=postHlaseniJSON)
    printRes('postHlaseni',res,req=postHlaseniJSON)
 #test bez kodu pracoviste   
-def bezKoduPrac(mesic):
+def bezKoduPrac(obdobi):
   
   with pfx_to_pem('MAHSUKL150017166G.pfx', 'Test1234') as cert:
    #status
@@ -107,22 +124,27 @@ def bezKoduPrac(mesic):
    printRes('status',res)
    #post  
    postHlaseniJSON = loadJSON('postHlaseni.json')
-   postHlaseniJSON["podaniID"]  = str(uuid.uuid4())
+   postHlaseniJSON["podaniID"]  = podaniID
    postHlaseniJSON['reglp'][0]["polozkaID"] = str(uuid.uuid4())
-   postHlaseniJSON["obdobi"] = mesic
+   postHlaseniJSON["obdobi"] = obdobi
    postHlaseniJSON.pop("kodPracoviste")  
    #postHlaseniJSON["kodPracoviste"]=""
    res = requests.post(url+'/hlaseni',cert=cert,json=postHlaseniJSON)
    printRes('postHlaseni',res,req=postHlaseniJSON)
    
+def nactiHlaseniPodleID():
+  res = doReq('get','/hlaseni/'+podaniID)
+  printRes('getHlaseniPodleID',res)
+
+
 auth()
 #vezme prvni pracoviste dis z ciselniku praocvist
-#postHlaseni(typ='dis',mesic='202403')
+delete('2024','06')
+postHlaseni(typ='dis',obdobi='202406')
+nactiHlaseniPodleID()
 #vezme prvni pracoviste lek z ciselniku pracovist
 #postHlaseni(typ='lek',mesic='202404')
 #smaze hlaeni za konrketni mesic
 #delete('2024','03');
 #bezKoduPrac('202404')
-#nactiKodPracoviste(2,ico='27460894')
-
-
+#nactiKodPracoviste(2,ico='27460894

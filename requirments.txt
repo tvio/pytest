@@ -1,1 +1,2 @@
-cryptogtaphy 41.0.7
+requests
+cryptography
